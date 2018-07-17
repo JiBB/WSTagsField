@@ -78,7 +78,7 @@ open class WSTagView: UIView {
 
     open var selected: Bool = false {
         didSet {
-            if selected && !isFirstResponder {
+            if selected && !isFirstResponder && !selectionWithoutEditing {
                 _ = becomeFirstResponder()
             } else
             if !selected && isFirstResponder {
@@ -87,6 +87,8 @@ open class WSTagView: UIView {
             updateContent(animated: true)
         }
     }
+    
+    open var selectionWithoutEditing = false
 
     public init(tag: WSTag) {
         super.init(frame: CGRect.zero)
@@ -191,7 +193,7 @@ open class WSTagView: UIView {
 
     // MARK: - First Responder (needed to capture keyboard)
     open override var canBecomeFirstResponder: Bool {
-        return true
+        return !selectionWithoutEditing
     }
 
     open override func becomeFirstResponder() -> Bool {
@@ -208,7 +210,7 @@ open class WSTagView: UIView {
 
     // MARK: - Gesture Recognizers
     @objc func handleTapGestureRecognizer(_ sender: UITapGestureRecognizer) {
-        if selected {
+        if selected && !selectionWithoutEditing {
             return
         }
         onDidRequestSelection?(self)

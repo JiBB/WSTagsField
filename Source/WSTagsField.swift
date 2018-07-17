@@ -154,6 +154,17 @@ open class WSTagsField: UIScrollView {
             repositionViews()
         }
     }
+    
+    open var multiSelect: Bool = false {
+        didSet {
+            unselectAllTagViewsAnimated()
+            textField.isEnabled = !readOnly
+            repositionViews()
+            tagViews.forEach {
+                $0.selectionWithoutEditing = multiSelect
+            }
+        }
+    }
 
     /// By default, the return key is used to create a tag in the field. You can change it, i.e., to use comma or space key instead.
     open var acceptTagOption: WSTagAcceptOption = .return
@@ -391,7 +402,9 @@ open class WSTagsField: UIScrollView {
                 self?.textField.text = text
             }
         }
-
+        
+        tagView.selectionWithoutEditing = multiSelect
+        
         self.tagViews.append(tagView)
         addSubview(tagView)
 
@@ -482,19 +495,26 @@ open class WSTagsField: UIScrollView {
     }
 
     open func selectTagView(_ tagView: WSTagView, animated: Bool = false) {
-        if self.readOnly {
+        if self.readOnly && !self.multiSelect {
             return
         }
 
         if tagView.selected {
-            tagView.onDidRequestDelete?(tagView, nil)
+            if self.multiSelect {
+                tagView.selected = false
+                onDidUnselectTagView?(self, tagView)
+            } else {
+                tagView.onDidRequestDelete?(tagView, nil)
+            }
             return
         }
 
         tagView.selected = true
-        tagViews.filter { $0 != tagView }.forEach {
-            $0.selected = false
-            onDidUnselectTagView?(self, $0)
+        if !self.multiSelect {
+            tagViews.filter { $0 != tagView }.forEach {
+                $0.selected = false
+                onDidUnselectTagView?(self, $0)
+            }
         }
 
         onDidSelectTagView?(self, tagView)
@@ -506,7 +526,23 @@ open class WSTagsField: UIScrollView {
             onDidUnselectTagView?(self, $0)
         }
     }
+    
+    open func selectedTags() -> [String] {
+        var result: [String] = []
+        for (index, tag) in tags.enumerated() {
+            if tagViews[index].selected {
+                result.append(tag.text)
+            }
+        }
+        return result
+    }
 
+    open func selectTags(_ toSelect: [String]) {
+        for (index, tag) in tags.enumerated() {
+            tagViews[index].selected = toSelect.contains(tag.text)
+        }
+    }
+    
     // MARK: internal & private properties or methods
 
     // Reposition tag views when bounds changes.
